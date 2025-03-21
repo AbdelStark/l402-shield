@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { BlockData } from "../utils/api";
-import { Search } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 interface BlockInfoProps {
   blockData: BlockData | null;
@@ -31,27 +31,27 @@ const BlockInfo: React.FC<BlockInfoProps> = ({ blockData }) => {
           blockData.hash.length - 10,
         )}`
       : blockData.hash;
+      
+  const explorerUrl = `https://mempool.space/block/${blockData.hash}`;
 
   return (
-    <div className="mt-6 p-4 bg-black border-2 border-cyan-500 shadow-[0_0_10px_#06B6D4] rounded-md scanlines">
+    <a 
+      href={explorerUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block mt-6 p-4 bg-black border-2 border-cyan-500 shadow-[0_0_10px_#06B6D4] rounded-md scanlines hover:border-cyan-400 hover:shadow-[0_0_15px_#06B6D4] transition-all duration-300"
+    >
       <h3 className="text-cyan-400 mb-3 text-center">LATEST BITCOIN BLOCK</h3>
-      <div className="space-y-2 font-mono text-sm text-green-400">
+      <div className="space-y-2 font-mono text-sm text-green-400 text-center">
         <p className="typewriter">HEIGHT: #{blockData.height}</p>
-        <div className="flex items-center gap-2">
-          <p className="typewriter">HASH: {shortenedHash}</p>
-          <a
-            href={`https://mempool.space/block/${blockData.hash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center text-cyan-400 hover:text-cyan-300 transition-colors"
-            title="View in Block Explorer"
-          >
-            <Search size={16} />
-          </a>
-        </div>
+        <p className="typewriter">HASH: {shortenedHash}</p>
         <p className="typewriter">TIME: {blockData.timestamp}</p>
       </div>
-    </div>
+      <div className="mt-4 flex items-center justify-center text-xs text-cyan-400/70 hover:text-cyan-400 transition-colors">
+        <span>VIEW IN EXPLORER</span>
+        <ExternalLink size={12} className="ml-1" />
+      </div>
+    </a>
   );
 };
 
