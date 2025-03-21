@@ -74,7 +74,7 @@ export async function getInfo(token: string): Promise<UserInfo> {
 }
 
 export async function getBlock(
-  token: string
+  token: string,
 ): Promise<BlockData | PaymentRequiredError> {
   try {
     const response = await fetch(`${API_BASE}/block`, {
@@ -108,7 +108,7 @@ export async function getPaymentRequest(
   token: string,
   offer: OfferItem,
   paymentMethod: string,
-  paymentContextToken: string
+  paymentContextToken: string,
 ): Promise<string> {
   try {
     console.log("Fetching payment request from:", paymentRequestUrl);
@@ -147,19 +147,18 @@ export async function getPaymentRequest(
 }
 
 export async function getPaymentOptions(
-  token: string
+  token: string,
 ): Promise<PaymentRequiredError> {
   try {
-    const response = await fetch(`${API_BASE}/block`, {
+    const response = await fetch(`${API_BASE}/credits-payment-options`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    // If we get a 402 response with payment details, use that
-    if (response.status === 402) {
+    if (response.status === 200) {
       const data = await response.json();
-      console.log("Payment options received from 402 response:", data);
+      console.log("Payment options received:", data);
       return data as PaymentRequiredError;
     }
 

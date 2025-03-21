@@ -411,7 +411,6 @@ export default function Home() {
           setPaymentContext(null);
           setIsProcessing(false);
           setIsBlockLoading(false);
-
         }}
         offers={availableOffers}
         onSelectOffer={handleSelectOffer}
