@@ -1,3 +1,4 @@
+// L402 Shield - Main App Page
 "use client";
 import { useState, useEffect } from "react";
 import CreditCounter from "../components/CreditCounter";
@@ -104,6 +105,12 @@ export default function Home() {
         const paymentDetails = response as PaymentRequiredError;
 
         // Get the first offer (or let user select in a more advanced UI)
+        if (!paymentDetails.offers || paymentDetails.offers.length === 0) {
+          console.error("No offers found in payment details");
+          alert("No payment options available. Please try again later.");
+          return;
+        }
+
         const selectedOffer = paymentDetails.offers[0];
         console.log("Selected offer:", selectedOffer);
 

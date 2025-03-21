@@ -134,11 +134,11 @@ export async function getPaymentRequest(
     const data = await response.json();
     console.log("Payment request response:", data);
 
-    // The response should contain the Lightning invoice
-    if (data && data.payment_request) {
-      return data.payment_request;
+    // The response contains the Lightning invoice in the lightning_invoice field
+    if (data && data.lightning_invoice) {
+      return data.lightning_invoice;
     } else {
-      throw new Error("No payment_request in response");
+      throw new Error("No lightning_invoice in response");
     }
   } catch (error) {
     console.error("Payment request error:", error);
