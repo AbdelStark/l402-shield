@@ -21,8 +21,17 @@ export interface BlockData {
 }
 
 export interface PaymentRequiredError {
-  error: string;
-  invoice: string;
+  expiry: string;
+  offers: OfferItem[];
+  payment_context_token: string;
+  payment_request_url: string;
+}
+
+export interface OfferItem {
+  id: string;
+  amount: string;
+  description: string;
+  currency: string;
 }
 
 // API functions
@@ -78,6 +87,7 @@ export async function getBlock(
 
     // If status is 402, return the payment info
     if (response.status === 402) {
+      console.log("Received 402 Payment Required response:", data);
       return data as PaymentRequiredError;
     }
 
@@ -89,6 +99,49 @@ export async function getBlock(
     throw new Error(`Block fetch failed: ${response.statusText}`);
   } catch (error) {
     console.error("Block fetch error:", error);
+    throw error;
+  }
+}
+
+export async function getPaymentRequest(
+  paymentRequestUrl: string,
+  token: string,
+  offer: OfferItem,
+  paymentMethod: string,
+  paymentContextToken: string,
+): Promise<string> {
+  try {
+    console.log("Fetching payment request from:", paymentRequestUrl);
+    console.log("Selected offer:", offer);
+
+    const response = await fetch(paymentRequestUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        offer_id: offer.id,
+        payment_method: paymentMethod,
+        payment_context_token: paymentContextToken,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Payment request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log("Payment request response:", data);
+
+    // The response should contain the Lightning invoice
+    if (data && data.payment_request) {
+      return data.payment_request;
+    } else {
+      throw new Error("No payment_request in response");
+    }
+  } catch (error) {
+    console.error("Payment request error:", error);
     throw error;
   }
 }

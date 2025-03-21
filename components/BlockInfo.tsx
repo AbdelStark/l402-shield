@@ -8,17 +8,15 @@ interface BlockInfoProps {
   isLoading?: boolean;
 }
 
-const BlockInfo: React.FC<BlockInfoProps> = ({ blockData, isLoading = false }) => {
+const BlockInfo: React.FC<BlockInfoProps> = ({
+  blockData,
+  isLoading = false,
+}) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (blockData?.hash) {
       setVisible(true);
-
-      // Optional - play a success sound when block data is received
-      const audio = new Audio("/sounds/success.mp3");
-      audio.volume = 0.3;
-      audio.play().catch((err) => console.log("Audio play error:", err));
     }
   }, [blockData]);
 
@@ -49,11 +47,11 @@ const BlockInfo: React.FC<BlockInfoProps> = ({ blockData, isLoading = false }) =
           blockData.hash.length - 10,
         )}`
       : blockData.hash;
-      
+
   const explorerUrl = `https://mempool.space/block/${blockData.hash}`;
 
   return (
-    <a 
+    <a
       href={explorerUrl}
       target="_blank"
       rel="noopener noreferrer"

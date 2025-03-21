@@ -76,20 +76,20 @@ The application follows a vintage arcade game theme with neon colors, pixelated 
 - Styled with Tailwind CSS
 - Uses react-qr-code for QR code generation
 
-### Project Structure
-
-```
-l402-shield/
-├── src/
-│   ├── app/             # Next.js App Router
-│   ├── components/      # React components
-│   ├── utils/           # Helper functions
-│   └── public/          # Static assets
-├── .env.local           # Environment variables
-├── tailwind.config.js   # Tailwind configuration
-└── next.config.js       # Next.js configuration
-```
-
 ## License
 
 [MIT](LICENSE)
+
+---
+
+Built with 🧡 by [@AbdelStark](https://github.com/AbdelStark)
+
+Feel free to follow me on Nostr if you’d like, using my public key:
+
+```text
+npub1hr6v96g0phtxwys4x0tm3khawuuykz6s28uzwtj5j0zc7lunu99snw2e29
+```
+
+Or just **scan this QR code** to find me:
+
+![Nostr Public Key QR Code](https://hackmd.io/_uploads/SkAvwlYYC.png)

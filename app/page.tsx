@@ -5,7 +5,14 @@ import BlockInfo from "../components/BlockInfo";
 import QRCodeModal from "../components/QRCodeModal";
 import SignupPrompt from "../components/SignupPrompt";
 import ArcadeButton from "../components/ArcadeButton";
-import { signup, getInfo, getBlock, BlockData } from "../utils/api";
+import {
+  signup,
+  getInfo,
+  getBlock,
+  getPaymentRequest,
+  BlockData,
+  PaymentRequiredError,
+} from "../utils/api";
 
 export default function Home() {
   // Auth state
@@ -87,22 +94,55 @@ export default function Home() {
       setIsProcessing(true);
       const response = await getBlock(authToken);
 
-      // Check if payment is required (402)
-      if ("invoice" in response) {
-        // Set the invoice and open QR modal
-        setInvoice(response.invoice);
-        setQRModalOpen(true);
+      console.log("Block response received:", response);
 
-        // Start polling for payment
-        startPollingForPayment();
+      // Check if payment is required (402)
+      if ("payment_request_url" in response) {
+        console.log("Payment required, processing payment flow");
+
+        // Get the L402 payment details
+        const paymentDetails = response as PaymentRequiredError;
+
+        // Get the first offer (or let user select in a more advanced UI)
+        const selectedOffer = paymentDetails.offers[0];
+        console.log("Selected offer:", selectedOffer);
+
+        try {
+          // Request the actual Lightning invoice
+          const invoice = await getPaymentRequest(
+            paymentDetails.payment_request_url,
+            authToken,
+            selectedOffer,
+            "lightning",
+            paymentDetails.payment_context_token,
+          );
+
+          console.log("Received Lightning invoice:", invoice);
+
+          // Set the invoice and open QR modal
+          setInvoice(invoice);
+          setQRModalOpen(true);
+
+          // Start polling for payment
+          startPollingForPayment();
+        } catch (error) {
+          console.error("Failed to get payment request:", error);
+          alert("Failed to generate payment invoice. Please try again.");
+        }
+      } else if ("error" in response) {
+        // Another type of error in the response
+        console.error("Error in block response:", response.error);
+        alert(`Error: ${response.error}`);
       } else {
         // Success - we got block data
-        setBlockData(response);
+        console.log("Block data received:", response);
+        setBlockData(response as BlockData);
         // Update credits (likely decreased by 1)
         fetchUserInfo(authToken);
       }
     } catch (error) {
       console.error("Failed to get block:", error);
+      alert("Failed to get block data. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -110,24 +150,37 @@ export default function Home() {
 
   // Start polling for payment confirmation
   const startPollingForPayment = () => {
-    if (!authToken) return;
+    if (!authToken) {
+      console.error("Cannot start polling: No auth token");
+      return;
+    }
 
     // Store initial credits to detect change
     const initialCredits = credits;
+    console.log("Starting payment polling. Initial credits:", initialCredits);
 
     // Clear any existing interval
     if (pollingInterval) {
       clearInterval(pollingInterval);
+      console.log("Cleared previous polling interval");
     }
 
     // Start a new polling interval
     const interval = setInterval(async () => {
       try {
         const info = await getInfo(authToken);
+        console.log("Polling for payment. Current credits:", info.credits);
         setCredits(info.credits);
 
         // If credits increased, payment was received
         if (info.credits > initialCredits) {
+          console.log(
+            "Payment detected! Credits increased from",
+            initialCredits,
+            "to",
+            info.credits,
+          );
+
           // Stop polling
           clearInterval(interval);
           setPollingInterval(null);
@@ -137,15 +190,17 @@ export default function Home() {
 
           // Auto-retry block fetch after brief delay
           setTimeout(() => {
+            console.log("Auto-retrying block fetch after payment");
             handleGetBlock();
           }, 1000);
         }
       } catch (error) {
         console.error("Payment polling error:", error);
       }
-    }, 200); // Poll every 200 ms
+    }, 2000); // Poll every 2 seconds (increased to reduce server load)
 
     setPollingInterval(interval);
+    console.log("Payment polling started");
   };
 
   // Clean up interval on unmount
@@ -156,6 +211,17 @@ export default function Home() {
       }
     };
   }, [pollingInterval]);
+
+  // For testing purposes - simulate a 402 payment required
+  const testPaymentFlow = () => {
+    // This is a valid BOLT11 invoice format for testing only
+    const testInvoice =
+      "lnbc1500n1pj4ak5mpp5wlzpk5gzhm64arljy8f2vm8chnsc0l7xr4qsdqtsn99ytr283fqdqqcqzzsxqyz5vqsp5ve9mgtttjm7rdzmzq6nvgcj2h0wsdx2hgr4xr0c5lt3h8a6q9lhs9qyyssq7k4k3jgdnpxnpekjrxmx7keqxnrdfgjyn3pqjvavtnfq7lfdldnqmg5vd9xlvtpn3hvyn2k38tf9evd5q8hcfmhd4r78zhkzq077ucq7wkprg";
+    console.log("Testing payment flow with sample invoice");
+    setInvoice(testInvoice);
+    setQRModalOpen(true);
+    startPollingForPayment();
+  };
 
   if (loading) {
     return <div className="text-center py-20">LOADING...</div>;
@@ -204,6 +270,16 @@ export default function Home() {
                     GET LATEST BLOCK
                   </ArcadeButton>
 
+                  {/* Dev mode - hidden testing button */}
+                  {process.env.NODE_ENV === "development" && (
+                    <button
+                      onClick={testPaymentFlow}
+                      className="mt-2 px-3 py-1 text-xs text-gray-500 hover:text-gray-400 hover:underline"
+                    >
+                      Test Payment Flow
+                    </button>
+                  )}
+
                   {credits === 0 && (
                     <p className="text-yellow-500 mt-2 text-sm animate-pulse">
                       NO CREDITS REMAINING
@@ -213,7 +289,9 @@ export default function Home() {
 
                 {/* Block Info Display */}
                 {blockData && <BlockInfo blockData={blockData} />}
-                {!blockData && isProcessing && <BlockInfo blockData={null} isLoading={true} />}
+                {!blockData && isProcessing && (
+                  <BlockInfo blockData={null} isLoading={true} />
+                )}
               </div>
             </div>
           </div>

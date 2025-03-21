@@ -15,16 +15,8 @@ const ArcadeButton: React.FC<ArcadeButtonProps> = ({
   variant = "primary",
   className = "",
 }) => {
-  // Play a button click sound
-  const playSound = () => {
-    const audio = new Audio("/sounds/click.mp3");
-    audio.volume = 0.3;
-    audio.play().catch((err) => console.log("Audio play error:", err));
-  };
-
   const handleClick = () => {
     if (!disabled) {
-      playSound();
       onClick();
     }
   };

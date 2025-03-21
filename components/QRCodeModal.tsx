@@ -17,17 +17,34 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      console.log("QR Modal opening with invoice:", invoice);
       setIsVisible(true);
     } else {
+      console.log("QR Modal closing");
       // Add a short delay before fully hiding to allow for animation
       const timer = setTimeout(() => {
         setIsVisible(false);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, invoice]);
+
+  // Log whenever invoice changes
+  useEffect(() => {
+    if (invoice) {
+      console.log(
+        "Invoice received in QR Modal:",
+        invoice.substring(0, 20) + "...",
+      );
+    }
+  }, [invoice]);
 
   if (!isVisible) return null;
+
+  // Check if invoice is valid (non-empty)
+  if (!invoice) {
+    console.error("QR Modal opened but invoice is empty!");
+  }
 
   return (
     <div
@@ -49,7 +66,13 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
           {/* QR Code with neon border */}
           <div className="flex justify-center mb-4">
             <div className="p-4 bg-white rounded-md">
-              <QRCode value={invoice} size={200} />
+              {invoice ? (
+                <QRCode value={invoice} size={200} />
+              ) : (
+                <div className="h-[200px] w-[200px] flex items-center justify-center bg-gray-200 text-gray-700">
+                  Invalid Invoice
+                </div>
+              )}
             </div>
           </div>
 
@@ -59,7 +82,7 @@ const QRCodeModal: React.FC<QRCodeModalProps> = ({
 
           {/* Copy to clipboard option */}
           <div className="bg-gray-900 p-2 rounded text-xs text-gray-400 overflow-x-auto mb-4">
-            <code>{invoice}</code>
+            <code>{invoice || "No invoice data available"}</code>
           </div>
 
           <button
