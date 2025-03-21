@@ -1,6 +1,6 @@
 # L402 Shield
 
-A retro arcade-style web application that demonstrates the L402 protocol (Lightning HTTP 402) by integrating Lightning Network payments into a fun, nostalgic interface.
+A web application that demonstrates the L402 protocol (Lightning HTTP 402) by integrating Lightning Network payments into a fun, nostalgic interface.
 
 Try it out at [https://l402-shield.starknetonbitcoin.com](https://l402-shield.starknetonbitcoin.com).
 
