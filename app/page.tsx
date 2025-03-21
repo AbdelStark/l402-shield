@@ -213,6 +213,7 @@ export default function Home() {
 
                 {/* Block Info Display */}
                 {blockData && <BlockInfo blockData={blockData} />}
+                {!blockData && isProcessing && <BlockInfo blockData={null} isLoading={true} />}
               </div>
             </div>
           </div>
