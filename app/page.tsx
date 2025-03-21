@@ -6,13 +6,17 @@ import BlockInfo from "../components/BlockInfo";
 import QRCodeModal from "../components/QRCodeModal";
 import SignupPrompt from "../components/SignupPrompt";
 import ArcadeButton from "../components/ArcadeButton";
+import BuyCreditsButton from "../components/BuyCreditsButton";
+import CreditPackageModal from "../components/CreditPackageModal";
 import {
   signup,
   getInfo,
   getBlock,
   getPaymentRequest,
+  getPaymentOptions,
   BlockData,
   PaymentRequiredError,
+  OfferItem,
 } from "../utils/api";
 
 export default function Home() {
@@ -27,6 +31,8 @@ export default function Home() {
 
   // Payment state
   const [qrModalOpen, setQRModalOpen] = useState(false);
+  const [creditPackageModalOpen, setCreditPackageModalOpen] = useState(false);
+  const [availableOffers, setAvailableOffers] = useState<OfferItem[]>([]);
   const [invoice, setInvoice] = useState("");
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
     null,
@@ -230,6 +236,68 @@ export default function Home() {
     startPollingForPayment();
   };
 
+  // Handle buying credits
+  const handleBuyCredits = async () => {
+    if (!authToken) return;
+
+    try {
+      setIsProcessing(true);
+      const paymentDetails = await getPaymentOptions(authToken);
+
+      // Check if we have offers
+      if (!paymentDetails.offers || paymentDetails.offers.length === 0) {
+        console.error("No offers available");
+        alert("No payment options available. Please try again later.");
+        return;
+      }
+
+      // Set available offers and open the package selection modal
+      setAvailableOffers(paymentDetails.offers);
+      setCreditPackageModalOpen(true);
+    } catch (error) {
+      console.error("Failed to get payment options:", error);
+      alert("Failed to load payment options. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Handle selecting a credit package
+  const handleSelectOffer = async (selectedOffer: OfferItem) => {
+    if (!authToken) return;
+
+    try {
+      // Close the package selection modal
+      setCreditPackageModalOpen(false);
+      setIsProcessing(true);
+
+      // Get the latest payment options to ensure we have current context token
+      const paymentDetails = await getPaymentOptions(authToken);
+
+      // Request the actual Lightning invoice
+      const invoice = await getPaymentRequest(
+        paymentDetails.payment_request_url,
+        authToken,
+        selectedOffer,
+        "lightning",
+        paymentDetails.payment_context_token,
+      );
+
+      console.log("Received Lightning invoice:", invoice);
+
+      // Set the invoice and open QR modal
+      setInvoice(invoice);
+      setQRModalOpen(true);
+
+      // Start polling for payment
+      startPollingForPayment();
+    } catch (error) {
+      console.error("Failed to get payment request:", error);
+      alert("Failed to generate payment invoice. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-20">LOADING...</div>;
   }
@@ -251,7 +319,10 @@ export default function Home() {
           <div className="space-y-6">
             {/* Top Bar with Credits and Logout */}
             <div className="flex justify-between items-center">
-              <CreditCounter credits={credits} />
+              <div className="flex items-center space-x-3">
+                <CreditCounter credits={credits} />
+                <BuyCreditsButton onBuyCredits={handleBuyCredits} />
+              </div>
 
               <button
                 onClick={handleLogout}
@@ -317,6 +388,14 @@ export default function Home() {
             setPollingInterval(null);
           }
         }}
+      />
+
+      {/* Credit Package Selection Modal */}
+      <CreditPackageModal
+        isOpen={creditPackageModalOpen}
+        onClose={() => setCreditPackageModalOpen(false)}
+        offers={availableOffers}
+        onSelectOffer={handleSelectOffer}
       />
     </main>
   );

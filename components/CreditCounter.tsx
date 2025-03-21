@@ -10,12 +10,8 @@ const CreditCounter: React.FC<CreditCounterProps> = ({ credits }) => {
   const prevCredits = useRef(credits);
 
   useEffect(() => {
-    // If credits increased, play sound and animate
+    // If credits increased, animate
     if (credits > prevCredits.current) {
-      const audio = new Audio("/sounds/coin.mp3");
-      audio.volume = 0.4;
-      audio.play().catch((err) => console.log("Audio play error:", err));
-
       // Trigger animation
       setAnimate(true);
       setTimeout(() => setAnimate(false), 500);
