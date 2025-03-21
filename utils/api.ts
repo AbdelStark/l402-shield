@@ -74,7 +74,7 @@ export async function getInfo(token: string): Promise<UserInfo> {
 }
 
 export async function getBlock(
-  token: string,
+  token: string
 ): Promise<BlockData | PaymentRequiredError> {
   try {
     const response = await fetch(`${API_BASE}/block`, {
@@ -108,7 +108,7 @@ export async function getPaymentRequest(
   token: string,
   offer: OfferItem,
   paymentMethod: string,
-  paymentContextToken: string,
+  paymentContextToken: string
 ): Promise<string> {
   try {
     console.log("Fetching payment request from:", paymentRequestUrl);
@@ -147,30 +147,9 @@ export async function getPaymentRequest(
 }
 
 export async function getPaymentOptions(
-  token: string,
+  token: string
 ): Promise<PaymentRequiredError> {
   try {
-    // First try to use a dedicated payment-options endpoint if available
-    try {
-      const response = await fetch(`${API_BASE}/payment-options`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Payment options received from dedicated endpoint:", data);
-        return data as PaymentRequiredError;
-      }
-    } catch (error) {
-      console.log(
-        "No dedicated payment-options endpoint available, using fallback",
-      );
-    }
-
-    // Fallback: Get payment options from a 402 response to /block
-    // This is useful for backends that don't have a dedicated payment options endpoint
     const response = await fetch(`${API_BASE}/block`, {
       headers: {
         Authorization: `Bearer ${token}`,

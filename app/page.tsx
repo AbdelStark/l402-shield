@@ -28,6 +28,7 @@ export default function Home() {
   const [credits, setCredits] = useState(0);
   const [blockData, setBlockData] = useState<BlockData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isBlockLoading, setIsBlockLoading] = useState(false);
 
   // Payment state
   const [qrModalOpen, setQRModalOpen] = useState(false);
@@ -37,6 +38,9 @@ export default function Home() {
   const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(
     null,
   );
+  const [paymentContext, setPaymentContext] = useState<
+    "block" | "credits" | null
+  >(null);
 
   // Check for existing token on load
   useEffect(() => {
@@ -85,6 +89,8 @@ export default function Home() {
     setAuthToken(null);
     setCredits(0);
     setBlockData(null);
+    setPaymentContext(null);
+    setIsBlockLoading(false);
 
     // Stop any polling if active
     if (pollingInterval) {
@@ -99,6 +105,7 @@ export default function Home() {
 
     try {
       setIsProcessing(true);
+      setIsBlockLoading(true);
       const response = await getBlock(authToken);
 
       console.log("Block response received:", response);
@@ -106,6 +113,9 @@ export default function Home() {
       // Check if payment is required (402)
       if ("payment_request_url" in response) {
         console.log("Payment required, processing payment flow");
+
+        // Set payment context to "block" to indicate this payment is for a block fetch
+        setPaymentContext("block");
 
         // Get the L402 payment details
         const paymentDetails = response as PaymentRequiredError;
@@ -141,21 +151,25 @@ export default function Home() {
         } catch (error) {
           console.error("Failed to get payment request:", error);
           alert("Failed to generate payment invoice. Please try again.");
+          setIsBlockLoading(false);
         }
       } else if ("error" in response) {
         // Another type of error in the response
         console.error("Error in block response:", response.error);
         alert(`Error: ${response.error}`);
+        setIsBlockLoading(false);
       } else {
         // Success - we got block data
         console.log("Block data received:", response);
         setBlockData(response as BlockData);
+        setIsBlockLoading(false);
         // Update credits (likely decreased by 1)
         fetchUserInfo(authToken);
       }
     } catch (error) {
       console.error("Failed to get block:", error);
       alert("Failed to get block data. Please try again.");
+      setIsBlockLoading(false);
     } finally {
       setIsProcessing(false);
     }
@@ -197,15 +211,25 @@ export default function Home() {
           // Stop polling
           clearInterval(interval);
           setPollingInterval(null);
+          setIsProcessing(false);
 
           // Close modal
           setQRModalOpen(false);
 
-          // Auto-retry block fetch after brief delay
-          setTimeout(() => {
-            console.log("Auto-retrying block fetch after payment");
-            handleGetBlock();
-          }, 1000);
+          // Only retry block fetch if the payment was initiated from a block request
+          if (paymentContext === "block") {
+            setTimeout(() => {
+              console.log("Auto-retrying block fetch after payment");
+              handleGetBlock();
+            }, 1000);
+          } else {
+            console.log("Credits purchased directly, not fetching block");
+            // Make sure we're not showing block loading state when just buying credits
+            setIsBlockLoading(false);
+          }
+
+          // Reset payment context
+          setPaymentContext(null);
         }
       } catch (error) {
         console.error("Payment polling error:", error);
@@ -225,23 +249,16 @@ export default function Home() {
     };
   }, [pollingInterval]);
 
-  // For testing purposes - simulate a 402 payment required
-  const testPaymentFlow = () => {
-    // This is a valid BOLT11 invoice format for testing only
-    const testInvoice =
-      "lnbc1500n1pj4ak5mpp5wlzpk5gzhm64arljy8f2vm8chnsc0l7xr4qsdqtsn99ytr283fqdqqcqzzsxqyz5vqsp5ve9mgtttjm7rdzmzq6nvgcj2h0wsdx2hgr4xr0c5lt3h8a6q9lhs9qyyssq7k4k3jgdnpxnpekjrxmx7keqxnrdfgjyn3pqjvavtnfq7lfdldnqmg5vd9xlvtpn3hvyn2k38tf9evd5q8hcfmhd4r78zhkzq077ucq7wkprg";
-    console.log("Testing payment flow with sample invoice");
-    setInvoice(testInvoice);
-    setQRModalOpen(true);
-    startPollingForPayment();
-  };
-
   // Handle buying credits
   const handleBuyCredits = async () => {
     if (!authToken) return;
 
     try {
       setIsProcessing(true);
+
+      // Set payment context to "credits" to indicate this is a direct credits purchase
+      setPaymentContext("credits");
+
       const paymentDetails = await getPaymentOptions(authToken);
 
       // Check if we have offers
@@ -348,16 +365,6 @@ export default function Home() {
                     GET LATEST BLOCK
                   </ArcadeButton>
 
-                  {/* Dev mode - hidden testing button */}
-                  {process.env.NODE_ENV === "development" && (
-                    <button
-                      onClick={testPaymentFlow}
-                      className="mt-2 px-3 py-1 text-xs text-gray-500 hover:text-gray-400 hover:underline"
-                    >
-                      Test Payment Flow
-                    </button>
-                  )}
-
                   {credits === 0 && (
                     <p className="text-yellow-500 mt-2 text-sm animate-pulse">
                       NO CREDITS REMAINING
@@ -367,7 +374,7 @@ export default function Home() {
 
                 {/* Block Info Display */}
                 {blockData && <BlockInfo blockData={blockData} />}
-                {!blockData && isProcessing && (
+                {!blockData && isBlockLoading && (
                   <BlockInfo blockData={null} isLoading={true} />
                 )}
               </div>
@@ -387,13 +394,25 @@ export default function Home() {
             clearInterval(pollingInterval);
             setPollingInterval(null);
           }
+          // Reset payment context if user cancels
+          setPaymentContext(null);
+          // Ensure we're not showing block loading if user cancels
+          setIsBlockLoading(false);
+          setIsProcessing(false);
         }}
       />
 
       {/* Credit Package Selection Modal */}
       <CreditPackageModal
         isOpen={creditPackageModalOpen}
-        onClose={() => setCreditPackageModalOpen(false)}
+        onClose={() => {
+          setCreditPackageModalOpen(false);
+          // Reset payment context if user cancels
+          setPaymentContext(null);
+          setIsProcessing(false);
+          setIsBlockLoading(false);
+
+        }}
         offers={availableOffers}
         onSelectOffer={handleSelectOffer}
       />
