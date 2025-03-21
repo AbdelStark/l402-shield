@@ -33,7 +33,7 @@ The application follows a vintage arcade game theme with neon colors, pixelated 
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/l402-shield.git
+   git clone https://github.com/AbdelStark/l402-shield.git
    cd l402-shield
    ```
 
@@ -46,7 +46,7 @@ The application follows a vintage arcade game theme with neon colors, pixelated 
 3. Configure the backend URL:
    Create a `.env.local` file in the root directory:
 
-   ```
+   ```text
    NEXT_PUBLIC_API_BASE_URL="http://127.0.0.1:8080"
    ```
 
