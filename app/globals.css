@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 0%;
+    --foreground: 210 40% 98%;
+    --card: 0 0% 10%;
+    --card-foreground: 210 40% 98%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 280 100% 60%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 160 100% 50%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 210 40% 60%;
+    --accent: 310 100% 60%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 27.9% 16.9%;
+    --input: 215 27.9% 16.9%;
+    --ring: 263.4 70% 50.4%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Press Start 2P", system-ui, sans-serif;
+  }
+}
+
+.neon-text {
+  text-shadow:
+    0 0 5px theme("colors.purple.500"),
+    0 0 10px theme("colors.purple.500"),
+    0 0 15px theme("colors.purple.500");
+  animation: neon-flicker 2s infinite alternate;
+}
+
+.neon-border {
+  box-shadow:
+    0 0 5px theme("colors.cyan.500"),
+    0 0 10px theme("colors.cyan.500");
+  border: 1px solid theme("colors.cyan.300");
+}
+
+.arcade-button {
+  transition: all 0.1s ease;
+}
+
+.arcade-button:active {
+  transform: scale(0.98);
+}
+
+@keyframes neon-flicker {
+  0%,
+  19%,
+  21%,
+  23%,
+  25%,
+  54%,
+  56%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  24%,
+  55% {
+    opacity: 0.8;
+  }
+}
+
+@keyframes coin-inserted {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.5);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.coin-animation {
+  animation: coin-inserted 0.5s ease;
+}
+
+/* Pixelated scanlines effect */
+.scanlines {
+  position: relative;
+}
+
+.scanlines::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.1),
+    rgba(0, 0, 0, 0.1) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0.3;
+}
