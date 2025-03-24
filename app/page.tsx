@@ -596,7 +596,7 @@ export default function Home() {
                 <li><a href="https://github.com/AbdelStark/l402-shield" className="text-purple-400 hover:text-purple-300">GitHub Repository</a></li>
                 <li><a href="https://lightning.network/" className="text-purple-400 hover:text-purple-300">Lightning Network</a></li>
                 <li><a href="https://bitcoin.org/" className="text-purple-400 hover:text-purple-300">Bitcoin</a></li>
-                <li><a href="https://www.rfc-editor.org/rfc/rfc7231#section-6.5.2" className="text-purple-400 hover:text-purple-300">HTTP 402 Standard</a></li>
+                <li><a href="https://www.l402.org/" className="text-purple-400 hover:text-purple-300">L402 Protocol</a></li>
               </ul>
             </div>
           </div>
