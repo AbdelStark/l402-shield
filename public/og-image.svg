@@ -1,0 +1,31 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#000000" />
+  <linearGradient id="grad" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" style="stop-color:#000000;stop-opacity:1" />
+    <stop offset="100%" style="stop-color:#111827;stop-opacity:1" />
+  </linearGradient>
+  <rect width="1200" height="630" fill="url(#grad)" />
+  
+  <!-- Purple glow effect -->
+  <filter id="glow">
+    <feGaussianBlur stdDeviation="8" result="blur" />
+    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+  </filter>
+  
+  <!-- Main title -->
+  <g filter="url(#glow)">
+    <text x="600" y="250" font-family="'Press Start 2P', monospace" font-size="64" font-weight="bold" fill="#a855f7" text-anchor="middle">L402 SHIELD</text>
+  </g>
+  
+  <!-- Subtitle -->
+  <text x="600" y="330" font-family="Arial, sans-serif" font-size="36" fill="#ffffff" text-anchor="middle">Lightning Payments on Bitcoin</text>
+  
+  <!-- Description -->
+  <text x="600" y="400" font-family="Arial, sans-serif" font-size="24" fill="#9ca3af" text-anchor="middle">HTTP 402 Lightning Micropayments Demo</text>
+  
+  <!-- Lightning bolt icon -->
+  <path d="M680 480 L650 530 L670 530 L640 580 L700 520 L670 520 L700 480 Z" fill="#a855f7" filter="url(#glow)" />
+  
+  <!-- Shield icon -->
+  <path d="M540 480 C540 480, 540 550, 600 580 C660 550, 660 480, 660 480 C660 480, 600 460, 540 480 Z" stroke="#a855f7" stroke-width="8" fill="none" filter="url(#glow)" />
+</svg> 

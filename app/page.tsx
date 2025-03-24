@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import CreditCounter from "../components/CreditCounter";
 import BlockInfo from "../components/BlockInfo";
 import QRCodeModal from "../components/QRCodeModal";
@@ -9,6 +10,7 @@ import SignupPrompt from "../components/SignupPrompt";
 import ArcadeButton from "../components/ArcadeButton";
 import BuyCreditsButton from "../components/BuyCreditsButton";
 import CreditPackageModal from "../components/CreditPackageModal";
+import { trackWebVitals, trackEvent } from "../utils/analytics";
 import {
   signup,
   getInfo,
@@ -25,6 +27,39 @@ const BitcoinConnectWallet = dynamic(
   () => import("../components/BitcoinConnectWallet"),
   { ssr: false }
 );
+
+// Add this new component for structured data
+function StructuredData() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "L402 Shield",
+    "description": "A retro arcade-style demo of the L402 Lightning HTTP 402 Protocol for Bitcoin micropayments",
+    "url": "https://l402.starknetonbitcoin.com/",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Any",
+    "author": {
+      "@type": "Person",
+      "name": "AbdelStark",
+      "url": "https://github.com/AbdelStark"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "inLanguage": "en",
+    "keywords": "Bitcoin, Lightning Network, L402, HTTP 402, micropayments",
+    "datePublished": "2023-10-01"
+  };
+
+  return (
+    <script 
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
 
 export default function Home() {
   // Auth state
@@ -51,6 +86,16 @@ export default function Home() {
   >(null);
   const [paymentMethod, setPaymentMethod] = useState<"qr" | "wallet">("qr");
 
+  const pathname = usePathname();
+
+  // Initialize web vitals tracking
+  useEffect(() => {
+    // Track web vitals on component mount
+    if (typeof window !== 'undefined') {
+      trackWebVitals(pathname || '');
+    }
+  }, [pathname]);
+
   // Check for existing token on load
   useEffect(() => {
     const token = localStorage.getItem("authToken");
@@ -73,10 +118,11 @@ export default function Home() {
     }
   };
 
-  // Handle signup
+  // Handle signup with analytics
   const handleSignup = async () => {
     try {
       setIsProcessing(true);
+      trackEvent('signup_started');
       const token = await signup();
 
       // Store token and update state
@@ -85,15 +131,18 @@ export default function Home() {
 
       // Get initial user info (credits)
       await fetchUserInfo(token);
+      trackEvent('signup_completed');
     } catch (error) {
       console.error("Signup failed:", error);
+      trackEvent('signup_failed', { error: String(error) });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Handle logout
+  // Handle logout with analytics
   const handleLogout = () => {
+    trackEvent('user_logout');
     localStorage.removeItem("authToken");
     setAuthToken(null);
     setCredits(0);
@@ -108,13 +157,14 @@ export default function Home() {
     }
   };
 
-  // Handle get block request
+  // Handle get block request with analytics
   const handleGetBlock = async () => {
     if (!authToken) return;
 
     try {
       setIsProcessing(true);
       setIsBlockLoading(true);
+      trackEvent('block_request_started');
       const response = await getBlock(authToken);
 
       console.log("Block response received:", response);
@@ -122,6 +172,7 @@ export default function Home() {
       // Check if payment is required (402)
       if ("payment_request_url" in response) {
         console.log("Payment required, processing payment flow");
+        trackEvent('payment_required', { context: 'block' });
 
         // Set payment context to "block" to indicate this payment is for a block fetch
         setPaymentContext("block");
@@ -171,6 +222,7 @@ export default function Home() {
         // Another type of error in the response
         console.error("Error in block response:", response.error);
         alert(`Error: ${response.error}`);
+        trackEvent('block_request_error', { error: response.error });
         setIsBlockLoading(false);
       } else {
         // Success - we got block data
@@ -179,10 +231,14 @@ export default function Home() {
         setIsBlockLoading(false);
         // Update credits (likely decreased by 1)
         fetchUserInfo(authToken);
+        trackEvent('block_request_success', { 
+          height: (response as BlockData).height
+        });
       }
     } catch (error) {
       console.error("Failed to get block:", error);
       alert("Failed to get block data. Please try again.");
+      trackEvent('block_request_error', { error: String(error) });
       setIsBlockLoading(false);
     } finally {
       setIsProcessing(false);
@@ -264,12 +320,13 @@ export default function Home() {
     };
   }, [pollingInterval]);
 
-  // Handle buying credits
+  // Handle buying credits with analytics
   const handleBuyCredits = async () => {
     if (!authToken) return;
 
     try {
       setIsProcessing(true);
+      trackEvent('buy_credits_started');
 
       // Set payment context to "credits" to indicate this is a direct credits purchase
       setPaymentContext("credits");
@@ -289,12 +346,13 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to get payment options:", error);
       alert("Failed to load payment options. Please try again.");
+      trackEvent('buy_credits_error', { error: String(error) });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  // Handle selecting a credit package
+  // Handle selecting a credit package with analytics
   const handleSelectOffer = async (selectedOffer: OfferItem) => {
     if (!authToken) return;
 
@@ -302,6 +360,11 @@ export default function Home() {
       // Close the package selection modal
       setCreditPackageModalOpen(false);
       setIsProcessing(true);
+      trackEvent('credit_package_selected', { 
+        package_id: selectedOffer.id,
+        amount: selectedOffer.amount,
+        currency: selectedOffer.currency
+      });
 
       // Get the latest payment options to ensure we have current context token
       const paymentDetails = await getPaymentOptions(authToken);
@@ -331,13 +394,15 @@ export default function Home() {
     } catch (error) {
       console.error("Failed to get payment request:", error);
       alert("Failed to generate payment invoice. Please try again.");
+      trackEvent('payment_request_error', { error: String(error) });
       setIsProcessing(false);
     }
   };
 
-  // Handle successful payment via Bitcoin Connect
+  // Handle successful payment via Bitcoin Connect with analytics
   const handleBitcoinConnectPayment = (preimage: string) => {
     console.log("Payment completed via Bitcoin Connect:", preimage);
+    trackEvent('payment_success', { method: 'bitcoin_connect' });
     
     // Force refresh user info to get updated credits
     if (authToken) {
@@ -367,9 +432,11 @@ export default function Home() {
     setPaymentContext(null);
   };
 
-  // Toggle payment method
+  // Toggle payment method with analytics
   const togglePaymentMethod = () => {
-    setPaymentMethod((current) => (current === "qr" ? "wallet" : "qr"));
+    const newMethod = paymentMethod === "qr" ? "wallet" : "qr";
+    trackEvent('payment_method_changed', { method: newMethod });
+    setPaymentMethod(newMethod);
   };
 
   if (loading) {
@@ -378,6 +445,7 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center">
+      <StructuredData />
       {/* Title Banner */}
       <h1 className="text-3xl font-bold text-center text-purple-500 neon-text my-8">
         L402 SHIELD
@@ -502,6 +570,42 @@ export default function Home() {
         offers={availableOffers}
         onSelectOffer={handleSelectOffer}
       />
+
+      {/* Footer with SEO-friendly links */}
+      <footer className="mt-16 py-8 border-t border-gray-800 text-center">
+        <div className="max-w-2xl mx-auto">
+          <h2 className="text-lg font-semibold text-purple-400 mb-4">About L402 Shield</h2>
+          <p className="text-gray-300 mb-6">
+            L402 Shield demonstrates the Lightning HTTP 402 Protocol (L402) for API monetization, allowing seamless Bitcoin micropayments through the Lightning Network.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div>
+              <h3 className="text-white font-medium mb-2">Key Features</h3>
+              <ul className="text-gray-400 text-sm space-y-1">
+                <li>Lightning Network Payments</li>
+                <li>Bitcoin Connect Wallet Integration</li>
+                <li>Credit System for API Access</li>
+                <li>HTTP 402 Payment Required Implementation</li>
+                <li>Retro Arcade Interface</li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-medium mb-2">Learn More</h3>
+              <ul className="text-gray-400 text-sm space-y-1">
+                <li><a href="https://github.com/AbdelStark/l402-shield" className="text-purple-400 hover:text-purple-300">GitHub Repository</a></li>
+                <li><a href="https://lightning.network/" className="text-purple-400 hover:text-purple-300">Lightning Network</a></li>
+                <li><a href="https://bitcoin.org/" className="text-purple-400 hover:text-purple-300">Bitcoin</a></li>
+                <li><a href="https://www.rfc-editor.org/rfc/rfc7231#section-6.5.2" className="text-purple-400 hover:text-purple-300">HTTP 402 Standard</a></li>
+              </ul>
+            </div>
+          </div>
+          
+          <p className="text-sm text-gray-500">
+            &copy; {new Date().getFullYear()} L402 Shield | Created by <a href="https://github.com/AbdelStark" className="text-purple-400 hover:text-purple-300">AbdelStark</a>
+          </p>
+        </div>
+      </footer>
     </main>
   );
 }
