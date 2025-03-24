@@ -19,7 +19,9 @@ The application follows a vintage arcade game theme with neon colors, pixelated 
 - **Retro Arcade UI**: Styled with neon colors, pixelated fonts, and arcade-style animations
 - **Token-based Authentication**: Sign up to receive an auth token
 - **Credit System**: Track your credits in a coin-based counter
-- **Lightning Payments**: When out of credits, scan a QR code with a Lightning wallet to pay
+- **Lightning Payments**: Multiple options for paying with Lightning
+  - **QR Code**: Scan a QR code with a Lightning wallet to pay
+  - **Bitcoin Connect**: Connect directly to your browser's Lightning wallet
 - **Block Explorer**: View the latest Bitcoin block information
 
 ## Getting Started
@@ -68,15 +70,19 @@ The application follows a vintage arcade game theme with neon colors, pixelated 
 2. **View Credits**: Check your available credits in the top-left corner
 3. **Get Block Data**: Click the "GET LATEST BLOCK" button
    - If you have credits, you'll see the latest block information
-   - If you're out of credits, a QR code will appear for payment
-4. **Add Credits**: Scan the QR code with a Lightning wallet to add credits
-5. **Logout**: Click "LOGOUT" to clear your session
+   - If you're out of credits, payment options will appear
+4. **Choose Payment Method**: Toggle between QR code and wallet connection
+   - **QR Code**: Scan with any Lightning wallet
+   - **Wallet Connection**: Connect directly to your browser's Lightning wallet with Bitcoin Connect
+5. **Add Credits**: Complete payment to add credits
+6. **Logout**: Click "LOGOUT" to clear your session
 
 ## Development
 
 - Built with Next.js and TypeScript
 - Styled with Tailwind CSS
 - Uses react-qr-code for QR code generation
+- Integrates with Bitcoin Connect for direct wallet connections
 
 ## License
 
@@ -86,7 +92,7 @@ The application follows a vintage arcade game theme with neon colors, pixelated 
 
 Built with 🧡 by [@AbdelStark](https://github.com/AbdelStark)
 
-Feel free to follow me on Nostr if you’d like, using my public key:
+Feel free to follow me on Nostr if you'd like, using my public key:
 
 ```text
 npub1hr6v96g0phtxwys4x0tm3khawuuykz6s28uzwtj5j0zc7lunu99snw2e29

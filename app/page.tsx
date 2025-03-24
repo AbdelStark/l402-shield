@@ -1,6 +1,7 @@
 // L402 Shield - Main App Page
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
+import dynamic from "next/dynamic";
 import CreditCounter from "../components/CreditCounter";
 import BlockInfo from "../components/BlockInfo";
 import QRCodeModal from "../components/QRCodeModal";
@@ -19,6 +20,12 @@ import {
   OfferItem,
 } from "../utils/api";
 
+// Dynamically import BitcoinConnectWallet to avoid server-side rendering issues
+const BitcoinConnectWallet = dynamic(
+  () => import("../components/BitcoinConnectWallet"),
+  { ssr: false }
+);
+
 export default function Home() {
   // Auth state
   const [authToken, setAuthToken] = useState<string | null>(null);
@@ -32,6 +39,7 @@ export default function Home() {
 
   // Payment state
   const [qrModalOpen, setQRModalOpen] = useState(false);
+  const [bitcoinConnectOpen, setBitcoinConnectOpen] = useState(false);
   const [creditPackageModalOpen, setCreditPackageModalOpen] = useState(false);
   const [availableOffers, setAvailableOffers] = useState<OfferItem[]>([]);
   const [invoice, setInvoice] = useState("");
@@ -41,6 +49,7 @@ export default function Home() {
   const [paymentContext, setPaymentContext] = useState<
     "block" | "credits" | null
   >(null);
+  const [paymentMethod, setPaymentMethod] = useState<"qr" | "wallet">("qr");
 
   // Check for existing token on load
   useEffect(() => {
@@ -142,9 +151,14 @@ export default function Home() {
 
           console.log("Received Lightning invoice:", invoice);
 
-          // Set the invoice and open QR modal
+          // Set the invoice and open payment modal based on preferred method
           setInvoice(invoice);
-          setQRModalOpen(true);
+          
+          if (paymentMethod === "qr") {
+            setQRModalOpen(true);
+          } else {
+            setBitcoinConnectOpen(true);
+          }
 
           // Start polling for payment
           startPollingForPayment();
@@ -213,8 +227,9 @@ export default function Home() {
           setPollingInterval(null);
           setIsProcessing(false);
 
-          // Close modal
+          // Close modals
           setQRModalOpen(false);
+          setBitcoinConnectOpen(false);
 
           // Only retry block fetch if the payment was initiated from a block request
           if (paymentContext === "block") {
@@ -302,9 +317,14 @@ export default function Home() {
 
       console.log("Received Lightning invoice:", invoice);
 
-      // Set the invoice and open QR modal
+      // Set the invoice and open payment modal based on preferred method
       setInvoice(invoice);
-      setQRModalOpen(true);
+          
+      if (paymentMethod === "qr") {
+        setQRModalOpen(true);
+      } else {
+        setBitcoinConnectOpen(true);
+      }
 
       // Start polling for payment
       startPollingForPayment();
@@ -313,6 +333,43 @@ export default function Home() {
       alert("Failed to generate payment invoice. Please try again.");
       setIsProcessing(false);
     }
+  };
+
+  // Handle successful payment via Bitcoin Connect
+  const handleBitcoinConnectPayment = (preimage: string) => {
+    console.log("Payment completed via Bitcoin Connect:", preimage);
+    
+    // Force refresh user info to get updated credits
+    if (authToken) {
+      fetchUserInfo(authToken);
+    }
+    
+    // Continue with standard flow
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      setPollingInterval(null);
+    }
+    
+    setBitcoinConnectOpen(false);
+    setIsProcessing(false);
+    
+    // Only retry block fetch if the payment was initiated from a block request
+    if (paymentContext === "block") {
+      setTimeout(() => {
+        console.log("Auto-retrying block fetch after payment");
+        handleGetBlock();
+      }, 1000);
+    } else {
+      console.log("Credits purchased directly, not fetching block");
+      setIsBlockLoading(false);
+    }
+    
+    setPaymentContext(null);
+  };
+
+  // Toggle payment method
+  const togglePaymentMethod = () => {
+    setPaymentMethod((current) => (current === "qr" ? "wallet" : "qr"));
   };
 
   if (loading) {
@@ -341,12 +398,20 @@ export default function Home() {
                 <BuyCreditsButton onBuyCredits={handleBuyCredits} />
               </div>
 
-              <button
-                onClick={handleLogout}
-                className="text-gray-400 hover:text-white text-sm"
-              >
-                LOGOUT
-              </button>
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={togglePaymentMethod}
+                  className="text-sm bg-gray-800 px-2 py-1 rounded hover:bg-gray-700"
+                >
+                  {paymentMethod === "qr" ? "🔄 Use Wallet" : "🔄 Use QR Code"}
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="text-gray-400 hover:text-white text-sm"
+                >
+                  LOGOUT
+                </button>
+              </div>
             </div>
 
             {/* Main Game Area */}
@@ -401,6 +466,28 @@ export default function Home() {
           setIsProcessing(false);
         }}
       />
+
+      {/* Bitcoin Connect Wallet Modal */}
+      <Suspense fallback={null}>
+        <BitcoinConnectWallet
+          invoice={invoice}
+          isOpen={bitcoinConnectOpen}
+          onClose={() => {
+            setBitcoinConnectOpen(false);
+            // Stop polling when modal is closed
+            if (pollingInterval) {
+              clearInterval(pollingInterval);
+              setPollingInterval(null);
+            }
+            // Reset payment context if user cancels
+            setPaymentContext(null);
+            // Ensure we're not showing block loading if user cancels
+            setIsBlockLoading(false);
+            setIsProcessing(false);
+          }}
+          onPaid={handleBitcoinConnectPayment}
+        />
+      </Suspense>
 
       {/* Credit Package Selection Modal */}
       <CreditPackageModal

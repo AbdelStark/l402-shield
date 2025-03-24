@@ -36,11 +36,8 @@
 }
 
 .neon-text {
-  text-shadow:
-    0 0 5px theme("colors.purple.500"),
-    0 0 10px theme("colors.purple.500"),
-    0 0 15px theme("colors.purple.500");
-  animation: neon-flicker 2s infinite alternate;
+  text-shadow: 0 0 5px #a855f7, 0 0 15px #a855f7, 0 0 20px #a855f7;
+  animation: neon-pulse 2s infinite alternate;
 }
 
 .neon-border {
@@ -58,21 +55,12 @@
   transform: scale(0.98);
 }
 
-@keyframes neon-flicker {
-  0%,
-  19%,
-  21%,
-  23%,
-  25%,
-  54%,
-  56%,
-  100% {
-    opacity: 1;
+@keyframes neon-pulse {
+  from {
+    text-shadow: 0 0 5px #a855f7, 0 0 15px #a855f7, 0 0 20px #a855f7;
   }
-  20%,
-  24%,
-  55% {
-    opacity: 0.8;
+  to {
+    text-shadow: 0 0 10px #a855f7, 0 0 25px #a855f7, 0 0 30px #a855f7;
   }
 }
 
